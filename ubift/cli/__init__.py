@@ -424,18 +424,21 @@ class CommandLine:
                             full_dir = os.path.join(ubi_vol_dir, ubifs._unroll_path(dent, dents))
                             rootlog.info(f"[+] Creating directory {full_dir}")
                             try:
-                                os.makedirs(full_dir, exist_ok=True)
+                                os.makedirs(full_dir, exist_ok=True, mode=0o777)
                             except:
                                 sanitized_path = sanitize_filepath(full_dir)
                                 rootlog.info(f"[!] Sanitizing filepath {full_dir} to {sanitized_path}")
-                                os.makedirs(sanitized_path, exist_ok=True)
+                                os.makedirs(sanitized_path, exist_ok=True, mode=0o777)
                             inode_num = dent.inum
                             if inode_num in inodes:
                                 atime = inodes[inode_num].atime_sec + inodes[inode_num].atime_nsec / 1000000000.0
                                 mtime = inodes[inode_num].mtime_sec + inodes[inode_num].mtime_nsec / 1000000000.0
                                 try:
                                     os.utime(full_dir, (atime, mtime))
-                                    os.chmod(full_dir, inodes[inode_num].mode)
+                                    rootlog.info(f"[-] Directory mode is {inodes[inode_num].mode:o}")
+                                    if inodes[inode_num].mode & 0o100  == 0:
+                                        rootlog.info(f"[!] directory {full_dir} has mode {inodes[inode_num].mode:o}, adding user execute permission for future file creation purposes.")
+                                    os.chmod(full_dir, inodes[inode_num].mode | 0o100)
                                 except:
                                     pass # TODO: print verbose warning msg
                         elif UBIFS_INODE_TYPES(dent.type) == UBIFS_INODE_TYPES.UBIFS_ITYPE_REG:
